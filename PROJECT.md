@@ -30,9 +30,12 @@ Frozen-corpus confirmation runs (after duplicate-import cleanup):
   - held-out address: **84.6%** (CER **0.080**)
 - **Close-out reconfirmation (default-on, full suite):** `runs/test/report_20260707_224339/report.md`
   - GT-backed samples: **68**
-  - held-out pass: **10/13** (unchanged)
-  - held-out name/address: **84.6%** each; nid/dob/serial(suffix): **100%**
-  - same 3 held-out failures: `real_20`, `real_Front`, `real_IMG20220809112613`
+  - held-out pass: **10/13** (suffix-match serial policy; superseded below)
+  - held-out name/address: **84.6%** each
+- **Serial scoring policy (full-match pass criterion):** `runs/test/report_20260707_225635/report.md`
+  - held-out pass: **4/13** (was 10/13 under suffix-match leniency — not a regression)
+  - held-out serial full-match: **27.3%**; suffix-match diagnostic: **100%**
+  - name/address held-out unchanged at **84.6%**
 
 Net effect: the default-on name selector gives a **clean held-out gain** over baseline, improving names without any held-out address regression.
 
@@ -52,7 +55,7 @@ Current held-out failures (genuine OCR ceiling, not structural bugs):
 |------|--------|-------|
 | **Blur / security-pattern cards** | OCR ceiling | Held-out failures on `real_20`, `real_Front`, `real_IMG20220809112613` are image-quality limits (blur, hologram interference), not fixable via engine/config tuning alone. |
 | **Field-detection training growth** | ~180 Roboflow fronts | ~341 front candidates; ~161 have all required YOLO field boxes. The rest still need manual box drawing before import/prefill. |
-| **Serial OCR** | Full-match ~27% (held-out) | Pass scoring uses **suffix-match** when the 7-digit tail is correct but the 2-letter prefix is wrong (`tests/id_metrics.py`). Suffix-match on held-out is ~100%; do not read headline pass rate as full serial accuracy. |
+| **Serial OCR** | Full-match ~27% held-out (pass criterion) | The printed serial is **رقم المصنع** — a factory/production identifier (2 Latin letters + 7 digits), required for Digital Egypt registration; prefix is not OCR noise. Suite **pass/fail uses full-match** (`serial_full_match`). Reports also show **suffix-match (OCR tolerance, not official)** when only the 7-digit tail is correct — an honestly tracked open gap, not hidden by headline pass rates. |
 | **Name engine select** | Default-on | EasyOCR vs Tesseract(ara) on `firstName`/`lastName` only. Address stays EasyOCR-only. |
 | **Eval corpus** | 68 GT-backed / 13 held-out | Spot-check counts before A/B comparisons (no duplicate stems, stable totals across consecutive runs). |
 

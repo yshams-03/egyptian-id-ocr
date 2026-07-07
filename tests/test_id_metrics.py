@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from tests.ground_truth import prefill_from_national_id
-from tests.id_metrics import cer, exact_match, normalize_serial, score_fields
+from tests.id_metrics import cer, exact_match, normalize_serial, score_fields, serial_suffix_match
 from tests.nid_validate import build_dob_nid_cross_check, dob_matches_nid, validate_extracted_nid
 from egypt_nid_decode import compute_nid_check_digit, verify_nid_checksum
 
@@ -26,11 +26,17 @@ class TestExactMatch:
     def test_serial_normalize(self):
         assert normalize_serial("GC9412479") == "GC9412479"
         assert exact_match("GC9412479", "GC9412479", field="serial")
+        assert exact_match("HE3221885", "#E3221885", field="serial")
+        # OCR prefix repairs in normalize_serial count as full-match
         assert exact_match("ID1949712", "101949712", field="serial")
         assert exact_match("GG6848691", "666848691", field="serial")
-        assert exact_match("HE3221885", "#E3221885", field="serial")
-        assert exact_match("JP2261375", "/P2261375", field="serial")
-        assert exact_match("GC9412479", "6(9412479", field="serial")
+        # Suffix-only: wrong prefix with no normalize repair — diagnostic only
+        assert not exact_match("HH5297948", "8H5297948", field="serial")
+        assert serial_suffix_match("HH5297948", "8H5297948")
+        assert not exact_match("GC9412479", "6(9412479", field="serial")
+        assert serial_suffix_match("GC9412479", "6(9412479")
+        assert not exact_match("JP2261375", "/P2261375", field="serial")
+        assert serial_suffix_match("JP2261375", "/P2261375")
 
     def test_dob_formats(self):
         assert exact_match("1996-11-09", "1996/11/09", field="dob")

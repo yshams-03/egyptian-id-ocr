@@ -134,8 +134,10 @@ def _append_field_table(lines: list[str], title: str, results: list[SampleResult
     if serial_rows:
         full = sum(1 for f in serial_rows if serial_full_match(f.expected, f.actual)) / len(serial_rows)
         suffix = sum(1 for f in serial_rows if serial_suffix_match(f.expected, f.actual)) / len(serial_rows)
-        lines.append(f"- Serial full-match accuracy: {100 * full:.1f}%")
-        lines.append(f"- Serial suffix-match accuracy: {100 * suffix:.1f}%")
+        lines.append(f"- Serial full-match accuracy (pass criterion): {100 * full:.1f}%")
+        lines.append(
+            f"- Serial suffix-match (OCR tolerance, not official): {100 * suffix:.1f}%"
+        )
         lines.append("")
 
 

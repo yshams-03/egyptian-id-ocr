@@ -188,7 +188,7 @@ Weights are written under `runs/` (e.g. `runs/train_id_detectr_hyper/weights/bes
 
 - **Blur / security-pattern photos:** Some real held-out cards (`real_20`, `real_Front`, `real_IMG20220809112613`) fail name/address OCR due to image quality, not pipeline bugs. Do not expect further gains from engine/config tuning alone.
 - **Field-detection dataset growth:** ~341 Roboflow front candidates; ~161 have all required YOLO boxes. The remaining ~180 still need manual box drawing before import/prefill.
-- **Serial scoring:** Suite pass rate uses **suffix-match** (7-digit tail) when the 2-letter prefix is wrong. Held-out serial **suffix-match is ~100%** while **full-match is ~27%** — see `tests/id_metrics.py` (`serial_suffix_match`). Do not treat pass rate as full serial OCR accuracy.
+- **Serial scoring:** The printed serial is **رقم المصنع** (factory/production code: 2 letters + 7 digits) — a real identifier for e-gov registration, not OCR noise. Suite **pass/fail uses full-match** (`tests/id_metrics.py`). Reports also show **suffix-match (OCR tolerance, not official)** for diagnostic comparison. Held-out full-match is ~27% — an open gap, not masked by lenient scoring.
 - **CI:** GitHub Actions runs fast unit tests on every push. `pytest -m slow` runs only on manual dispatch or nightly schedule and skips without local YOLO weights.
 
 ---

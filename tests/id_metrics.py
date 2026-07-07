@@ -77,10 +77,8 @@ def normalize_serial(s: str) -> str:
 
 def _serial_digit_suffix(s: str) -> str:
     """
-    Egyptian ID serial policy for evaluation:
-    - full match: normalized full serial must match
-    - suffix match: if OCR destroys the 2-letter prefix but preserves the 7-digit tail,
-      we still treat the serial as acceptable for the main score.
+    Last 7 digits of the printed factory serial (رقم المصنع).
+    Diagnostic only — not the official pass criterion (see serial_full_match).
     """
     digits = normalize_nid(s)
     return digits[-7:] if len(digits) >= 7 else digits
@@ -132,9 +130,7 @@ def exact_match(reference: str, hypothesis: str, *, field: str = "") -> bool:
     if field == "dob":
         return normalize_dob(reference) == normalize_dob(hypothesis)
     if field == "serial":
-        if serial_full_match(reference, hypothesis):
-            return True
-        return serial_suffix_match(reference, hypothesis)
+        return serial_full_match(reference, hypothesis)
     if field in EXACT_DIGIT_FIELDS:
         return normalize_nid(reference) == normalize_nid(hypothesis)
     return normalize_arabic_text(reference) == normalize_arabic_text(hypothesis)
