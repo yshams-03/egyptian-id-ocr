@@ -21,6 +21,16 @@ runs/
 *.pt
 *.whl
 
+# reviewed_real_* images duplicate canonical Roboflow stems (canonical_roboflow_stem)
+egyptian_id_detectr/content/**/images/reviewed_real_*
+
+# Partial / wrong-split reviewed_real label exports (prefer canonical train|valid/labels/*.txt)
+egyptian_id_detectr/content/**/labels/reviewed_real_18_jpg.rf.410747ed8c7b7f10080299dd93ff78f0.txt
+egyptian_id_detectr/content/**/labels/reviewed_real_12_jpg.rf.e7bd3836c8d40d0d98839d615a4e9aad.txt
+egyptian_id_detectr/content/**/labels/reviewed_real_26-2-_jpg.rf.5ab31047b156731f438636ff6a273f2f.txt
+egyptian_id_detectr/content/**/labels/reviewed_real_27_jpg.rf.08f7fabeddfc18e8215f19eec67caecf.txt
+egyptian_id_detectr/content/**/labels/reviewed_real_20190504_201359_jpg.rf.31be71911bc5c3df98db74ce08882d72.txt
+
 # Jupyter
 .ipynb_checkpoints/
 
