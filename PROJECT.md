@@ -28,6 +28,11 @@ Frozen-corpus confirmation runs (after duplicate-import cleanup):
   - held-out pass: **8/13**
   - held-out name: **69.2%** (CER **0.135**)
   - held-out address: **84.6%** (CER **0.080**)
+- **Close-out reconfirmation (default-on, full suite):** `runs/test/report_20260707_224339/report.md`
+  - GT-backed samples: **68**
+  - held-out pass: **10/13** (unchanged)
+  - held-out name/address: **84.6%** each; nid/dob/serial(suffix): **100%**
+  - same 3 held-out failures: `real_20`, `real_Front`, `real_IMG20220809112613`
 
 Net effect: the default-on name selector gives a **clean held-out gain** over baseline, improving names without any held-out address regression.
 
