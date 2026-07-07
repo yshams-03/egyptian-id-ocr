@@ -68,7 +68,13 @@ def main() -> int:
         action="store_true",
         help="Disable A-Z0-9 serial OCR allowlist (default: restrict enabled).",
     )
+    parser.add_argument(
+        "--no-local-engine-select-name",
+        action="store_true",
+        help="Disable EasyOCR vs Tesseract(ara) scoring on firstName/lastName (default: enabled).",
+    )
     args = parser.parse_args()
+    local_engine_select_name = not args.no_local_engine_select_name
     data_dir = args.data_dir.expanduser().resolve()
 
     if args.generate_template:
@@ -112,6 +118,17 @@ def main() -> int:
     except Exception as ex:
         print(f"Warning: model warmup partial ({ex})")
 
+    if local_engine_select_name:
+        import local_engine_select as les
+
+        les.reset_engine_select_stats()
+        lex_path = ROOT / "scripts" / "lexicon" / "egyptian_lexicon.json"
+        if not lex_path.is_file():
+            print("Building lexicon from train-source ground truth…")
+            import subprocess
+
+            subprocess.check_call([sys.executable, str(ROOT / "scripts" / "lexicon" / "build_lexicon.py")])
+
     results = run_dataset(
         data_dir,
         fast_mode=not args.no_fast,
@@ -119,6 +136,7 @@ def main() -> int:
         require_ground_truth=True,
         auto_card_crop=args.auto_card_crop,
         serial_charset_restrict=not args.no_serial_charset_restrict,
+        local_engine_select_name=local_engine_select_name,
         easyocr_reader=reader,
         field_yolo=field_yolo,
         digit_yolo=digit_yolo,
@@ -137,6 +155,12 @@ def main() -> int:
     print(f"Results: {passed}/{len(results)} passed")
     print(f"Report: {md_path}")
     print(f"HTML:   {html_path}")
+    if local_engine_select_name:
+        from scripts.summarize_engine_select import summarize
+
+        summ_path = md_path.parent / "engine_select_summary.md"
+        summarize(data_dir, summ_path)
+        print(f"Engine select: {summ_path}")
     return 0 if passed == len(results) else 1
 
 

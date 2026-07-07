@@ -35,6 +35,28 @@ IMPORT_META_DIRNAME = "import_meta"
 REAL_PREFIX = "real_"
 
 
+def canonical_roboflow_stem(stem: str) -> str:
+    """
+    Normalize Roboflow/front-review prefixes to one canonical ID-card stem.
+
+    Examples:
+      reviewed_real_Front_... -> Front_...
+      real_Front_...          -> Front_...
+      Front_...               -> Front_...
+    """
+    out = stem
+    if out.startswith("reviewed_"):
+        out = out[len("reviewed_") :]
+    if out.startswith(REAL_PREFIX):
+        out = out[len(REAL_PREFIX) :]
+    return out
+
+
+def local_real_stem_for_dataset_stem(stem: str) -> str:
+    """Map a dataset image stem to the canonical local `real_<stem>` name."""
+    return f"{REAL_PREFIX}{canonical_roboflow_stem(stem)}"
+
+
 def label_path_for_image(image_path: Path) -> Path:
     parts = list(image_path.parts)
     if "images" not in parts:
@@ -114,7 +136,7 @@ def import_one(
 ) -> dict[str, Any] | None:
     out_dir = out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = f"{REAL_PREFIX}{src_image.stem}"
+    stem = local_real_stem_for_dataset_stem(src_image.stem)
     dest_image = out_dir / f"{stem}{src_image.suffix.lower()}"
 
     if dest_image.is_file() and not overwrite:
@@ -172,6 +194,57 @@ def collect_front_ready_candidates(
             continue
         out.append(img)
     return out
+
+
+def import_all_unverified(
+    out_dir: Path,
+    *,
+    data_dir: Path | None = None,
+    front_only: bool = True,
+    require_boxes: bool = False,
+    use_symlink: bool = False,
+    skip_existing: bool = True,
+) -> list[dict[str, Any]]:
+    """
+    Import every Roboflow front image that lacks verified ground truth.
+    Preserves roboflow_train / roboflow_valid / roboflow_test source tags via import_meta/.
+    """
+    out_dir = out_dir.expanduser().resolve()
+    data_root = data_dir.expanduser().resolve() if data_dir else out_dir.parent
+    results: list[dict[str, Any]] = []
+
+    from tests.labeling.inventory import classify_ground_truth
+
+    for split in ("train", "valid", "test"):
+        for img in collect_front_ready_candidates(
+            split, front_only=front_only, require_boxes=require_boxes
+        ):
+            rob_stem = canonical_roboflow_stem(img.stem)
+            cat, _ = classify_ground_truth(data_root, rob_stem)
+            if cat == "verified":
+                continue
+            dest_stem = local_real_stem_for_dataset_stem(img.stem)
+            dest_image = out_dir / f"{dest_stem}{img.suffix.lower()}"
+            if skip_existing and dest_image.is_file():
+                results.append(
+                    {
+                        "stem": dest_stem,
+                        "image": dest_image.name,
+                        "source": split_name_to_source(split),
+                        "status": "exists",
+                    }
+                )
+                continue
+            row = import_one(
+                img,
+                out_dir,
+                source=split_name_to_source(split),
+                use_symlink=use_symlink,
+                overwrite=True,
+            )
+            if row:
+                results.append(row)
+    return results
 
 
 def run_reimport(
@@ -246,7 +319,27 @@ def main() -> int:
     parser.add_argument("--train-extra", type=int, default=20, help="Max train-split fronts to add")
     parser.add_argument("--symlink", action="store_true")
     parser.add_argument("--no-cleanup", action="store_true", help="Keep existing real_* imports")
+    parser.add_argument(
+        "--all-unverified",
+        action="store_true",
+        help="Import all Roboflow front images without verified ground truth (skip cleanup).",
+    )
+    parser.add_argument(
+        "--require-boxes",
+        action="store_true",
+        help="With --all-unverified: only import images with all required YOLO field boxes.",
+    )
     args = parser.parse_args()
+
+    if args.all_unverified:
+        results = import_all_unverified(
+            args.out_dir,
+            front_only=True,
+            require_boxes=args.require_boxes,
+            use_symlink=args.symlink,
+        )
+        print_import_summary(results)
+        return 0
 
     results = run_reimport(
         args.out_dir,

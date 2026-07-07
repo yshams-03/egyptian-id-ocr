@@ -106,6 +106,15 @@ def ocr_row_to_ground_truth(
     return payload
 
 
+def review_priority(missing_det: list[str], missing_ocr: list[str]) -> str:
+    """high = likely wrong / incomplete; low = likely OK."""
+    if missing_det or len(missing_ocr) >= 2:
+        return "high"
+    if missing_ocr:
+        return "medium"
+    return "low"
+
+
 def prefill_one(
     image_path: Path,
     data_dir: Path,
@@ -114,6 +123,7 @@ def prefill_one(
     easyocr_reader: object | None = None,
     digit_yolo: object | None = None,
     use_existing_draft_labels: bool = True,
+    local_engine_select_name: bool = True,
 ) -> dict[str, Any]:
     data_dir = data_dir.expanduser().resolve()
     stem = image_path.stem
@@ -124,6 +134,8 @@ def prefill_one(
         image_path,
         fast_mode=True,
         engine="easyocr",
+        serial_charset_restrict=True,
+        local_engine_select_name=local_engine_select_name,
         easyocr_reader=easyocr_reader,
         field_yolo=field_yolo,
         digit_yolo=digit_yolo,
@@ -148,6 +160,7 @@ def prefill_one(
         for f in ("full_name", "address", "national_id", "dob")
         if not str(gt.get(f if f != "full_name" else "full_name", "")).strip()
     ]
+    gt["draft_review_priority"] = review_priority(missing_det, gt["draft_missing_ocr"])
 
     draft_json = drafts_dir / f"{stem}.json"
     draft_json.parent.mkdir(parents=True, exist_ok=True)
@@ -163,26 +176,46 @@ def prefill_one(
         "boxes": len(boxes),
         "missing_detections": missing_det,
         "missing_ocr": gt["draft_missing_ocr"],
+        "review_priority": gt["draft_review_priority"],
         "source": source or "missing",
     }
+
+
+def _has_pending_draft(data_dir: Path, image_path: Path) -> bool:
+    stem = image_path.stem
+    draft = data_dir / DRAFTS_DIRNAME / f"{stem}.json"
+    if draft.is_file():
+        return True
+    gt_path = resolve_ground_truth_path(image_path, data_dir)
+    if gt_path and gt_path.is_file():
+        data = json.loads(gt_path.read_text(encoding="utf-8"))
+        return data.get("review_status") == "needs_review"
+    return False
 
 
 def run_prefill(
     data_dir: Path,
     *,
     force: bool = False,
+    skip_drafts: bool = True,
     only_subdir: str | None = None,
+    only_stems: set[str] | None = None,
     field_yolo: object | None = None,
     easyocr_reader: object | None = None,
     digit_yolo: object | None = None,
+    local_engine_select_name: bool = True,
 ) -> list[dict[str, Any]]:
     data_dir = data_dir.expanduser().resolve()
     results: list[dict[str, Any]] = []
     for img in discover_front_images(data_dir):
         if only_subdir and only_subdir not in img.parts:
             continue
+        if only_stems is not None and img.stem not in only_stems:
+            continue
         gt_path = resolve_ground_truth_path(img, data_dir)
         if is_verified_ground_truth(gt_path) and not force:
+            continue
+        if skip_drafts and not force and _has_pending_draft(data_dir, img):
             continue
         results.append(
             prefill_one(
@@ -191,6 +224,7 @@ def run_prefill(
                 field_yolo=field_yolo,
                 easyocr_reader=easyocr_reader,
                 digit_yolo=digit_yolo,
+                local_engine_select_name=local_engine_select_name,
             )
         )
     return results
@@ -227,6 +261,16 @@ def main() -> int:
         default=None,
         help="Only process images under this subfolder name (e.g. real)",
     )
+    parser.add_argument(
+        "--re-draft",
+        action="store_true",
+        help="Re-run OCR on images that already have draft JSON (default: skip existing drafts).",
+    )
+    parser.add_argument(
+        "--no-local-engine-select-name",
+        action="store_true",
+        help="Disable EasyOCR vs Tesseract(ara) scoring on firstName/lastName (default: enabled).",
+    )
     args = parser.parse_args()
 
     reader = field_yolo = digit_yolo = None
@@ -249,10 +293,12 @@ def main() -> int:
     results = run_prefill(
         args.data_dir,
         force=args.force,
+        skip_drafts=not args.re_draft,
         only_subdir=args.only,
         field_yolo=field_yolo,
         easyocr_reader=reader,
         digit_yolo=digit_yolo,
+        local_engine_select_name=not args.no_local_engine_select_name,
     )
     print_summary(results)
     return 0

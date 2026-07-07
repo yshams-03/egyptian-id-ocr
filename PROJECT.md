@@ -8,6 +8,39 @@ For day-to-day commands, flags, and troubleshooting, see [README.md](README.md).
 
 ---
 
+## Current Status
+
+Latest validated OCR changes:
+
+- **Address digit cleanup fixed:** short Arabic-number address tokens such as `ق ٩٤` are preserved instead of being dropped.
+- **Name-only local engine selection promoted to default:** `extract_id_all.py` and `tests.run_suite` now score **EasyOCR vs Tesseract(ara)** on `firstName` / `lastName` only via `local_engine_select_name=True`.
+- **Address OCR remains EasyOCR-only:** this avoids the earlier regression where lexicon-plausible but wrong Tesseract address text beat correct EasyOCR output.
+
+Frozen-corpus confirmation runs (after duplicate-import cleanup):
+
+- **Default-on run:** `runs/test/report_20260707_160217/report.md`
+  - GT-backed samples: **68** (55 train-source + 13 held-out)
+  - held-out pass: **10/13**
+  - held-out name: **84.6%** (CER **0.084**)
+  - held-out address: **84.6%** (CER **0.080**)
+- **Selector disabled:** `runs/test/report_20260707_160418/report.md`
+  - GT-backed samples: **68**
+  - held-out pass: **8/13**
+  - held-out name: **69.2%** (CER **0.135**)
+  - held-out address: **84.6%** (CER **0.080**)
+
+Net effect: the default-on name selector gives a **clean held-out gain** over baseline, improving names without any held-out address regression.
+
+**Corpus integrity (resolved):** an earlier A/B saw **64 vs 63** blended samples because `import_all_unverified` did not normalize `reviewed_real_*` Roboflow stems, creating duplicate `real_*` images alongside canonical ones. Fixed in `import_roboflow.py` and `inventory.py` via shared `canonical_roboflow_stem()`; **33 duplicate sets** removed. Evaluated corpus is now **68 GT-backed / 13 held-out** with stable counts across consecutive runs.
+
+Current held-out failures (genuine OCR ceiling, not structural bugs):
+
+- `real_20` — name + address
+- `real_Front` — address
+- `real_IMG20220809112613` — name
+
+---
+
 ## Problem
 
 Egyptian national ID cards mix Arabic script, Arabic-Indic digits, Latin serial prefixes, and a fixed 14-digit national ID encoding. Manual transcription is slow and error-prone. This project automates:
@@ -302,3 +335,5 @@ Training images come from Roboflow Universe datasets (typically **CC BY 4.0**). 
 | `py -m tests.labeling.compare_weights` | v1 vs v2 accuracy on `test_data/id_cards` |
 
 Ground truth lives in gitignored `test_data/id_cards/`; committed regression uses `tests/fixtures/ground_truth/15-2-....json` on the public Roboflow test image. Reports under `runs/test/` may contain PII — do not commit them.
+
+Before trusting any A/B comparison, spot-check corpus stability: held-out count should stay fixed (currently **13**), total GT-backed samples should match across consecutive runs (no duplicate stems), and blended case counts should not drift between runs on the same frozen corpus.

@@ -83,6 +83,7 @@ class ExtractConfig:
     force_back: bool = False
     auto_detect_side: bool = False
     fast_mode: bool = False
+    local_engine_select_name: bool = True
     field_yolo: object | None = None
     digit_yolo: object | None = None
 
@@ -265,22 +266,48 @@ def extract_front(
         )
         if "firstName" in best:
             cr = eid.crop_xyxy(img, best["firstName"][0], cfg.pad)
-            first = ena.ocr_text_field_easyocr(
-                cr,
-                easyocr_reader,
-                min_side=NAME_OCR_MIN_SIDE,
-                max_side=NAME_OCR_MAX_SIDE,
-            )
+            if cfg.local_engine_select_name and easyocr_reader is not None:
+                import local_engine_select as les
+
+                first = les.select_field_text(
+                    cr,
+                    reader=easyocr_reader,
+                    field_kind="name",
+                    field_label="firstName",
+                    min_side=NAME_OCR_MIN_SIDE,
+                    max_side=NAME_OCR_MAX_SIDE,
+                    image_path=str(img_path),
+                )
+            else:
+                first = ena.ocr_text_field_easyocr(
+                    cr,
+                    easyocr_reader,
+                    min_side=NAME_OCR_MIN_SIDE,
+                    max_side=NAME_OCR_MAX_SIDE,
+                )
         else:
             first = ""
         if "lastName" in best:
             cr = eid.crop_xyxy(img, best["lastName"][0], cfg.pad)
-            last = ena.ocr_text_field_easyocr(
-                cr,
-                easyocr_reader,
-                min_side=NAME_OCR_MIN_SIDE,
-                max_side=NAME_OCR_MAX_SIDE,
-            )
+            if cfg.local_engine_select_name and easyocr_reader is not None:
+                import local_engine_select as les
+
+                last = les.select_field_text(
+                    cr,
+                    reader=easyocr_reader,
+                    field_kind="name",
+                    field_label="lastName",
+                    min_side=NAME_OCR_MIN_SIDE,
+                    max_side=NAME_OCR_MAX_SIDE,
+                    image_path=str(img_path),
+                )
+            else:
+                last = ena.ocr_text_field_easyocr(
+                    cr,
+                    easyocr_reader,
+                    min_side=NAME_OCR_MIN_SIDE,
+                    max_side=NAME_OCR_MAX_SIDE,
+                )
         else:
             last = ""
         if "address" in best:
@@ -571,6 +598,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Disable A-Z0-9 serial OCR allowlist (default: restrict enabled).",
     )
+    p.add_argument(
+        "--local-engine-select-name",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Score EasyOCR vs Tesseract(ara) on firstName/lastName (default: enabled).",
+    )
     p.add_argument("--decode-nid", action=argparse.BooleanOptionalAction, default=True)
     p.add_argument("--strip-address-digits", action="store_true")
     p.add_argument("--no-dob-from-nid", action="store_true")
@@ -614,6 +647,7 @@ def config_from_args(args: argparse.Namespace) -> ExtractConfig:
         fallback_invalid_fields=not args.no_fallback_invalid_fields,
         force_back=args.back,
         auto_detect_side=args.auto_detect_side,
+        local_engine_select_name=args.local_engine_select_name,
     )
 
 

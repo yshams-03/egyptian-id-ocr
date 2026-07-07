@@ -190,6 +190,7 @@ Weights are written under `runs/` (e.g. `runs/train_id_detectr_hyper/weights/bes
 |---------|--------------|------------|
 | Empty name/address (`ntl`, gibberish) | Tesseract-only on screenshots | Use `extract_id_all` or `--engine mixed`; install EasyOCR |
 | Wrong serial (`118…` vs `II…`) | `11` read as Roman `II` | Serial OCR uses A–Z0-9 allowlist by default; pass `--no-serial-charset-restrict` to disable |
+| Weak / wrong Arabic names on real photos | EasyOCR-only on name crops | **Default:** `extract_id_all` and `run_suite` score EasyOCR vs Tesseract(ara) on firstName/lastName (`local_engine_select_name=True`). Pass `--no-local-engine-select-name` to disable |
 | Empty `dob` but good `decoded_birth_date` | Printed DOB not read | Default: `dob` filled from decode when OCR is not date-like |
 | GUI stuck on step 4 | Long OCR + old UI timers | Restart `gui_app.py`; wait for warmup; watch elapsed seconds |
 | All fields empty on National-ID-7 train image | Wrong dataset for field OCR | Use a real front-ID photo; or rely on `invalid_*` fallback (partial) |
