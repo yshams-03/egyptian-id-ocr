@@ -36,17 +36,33 @@ def _find_image(data_dir: Path, stem: str) -> Path | None:
     return None
 
 
-def list_pending_drafts(data_dir: Path) -> list[dict[str, Any]]:
+def list_pending_drafts(
+    data_dir: Path,
+    *,
+    sort_mode: str = "fast_confirm",
+) -> list[dict[str, Any]]:
+    """
+    sort_mode:
+      fast_confirm — low-priority (boxed + OCR'd) first; default for throughput
+      needs_work   — high-priority (missing boxes/OCR) first
+      stem         — alphabetical by stem
+    """
     data_dir = data_dir.expanduser().resolve()
     drafts = data_dir / DRAFTS_DIRNAME
     if not drafts.is_dir():
         return []
     pending: list[dict[str, Any]] = []
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
     for dj in sorted(drafts.glob("*.json")):
         stem = dj.stem
         img = _find_image(data_dir, stem)
         label = data_dir / DRAFT_LABELS_DIRNAME / f"{stem}.txt"
         gt = json.loads(dj.read_text(encoding="utf-8"))
+        missing_ocr = gt.get("draft_missing_ocr", [])
+        missing_det = gt.get("draft_missing_detections", [])
+        priority = gt.get("draft_review_priority") or (
+            "high" if missing_det or len(missing_ocr) >= 2 else ("medium" if missing_ocr else "low")
+        )
         pending.append(
             {
                 "stem": stem,
@@ -54,10 +70,33 @@ def list_pending_drafts(data_dir: Path) -> list[dict[str, Any]]:
                 "draft_json": str(dj),
                 "draft_label": str(label) if label.is_file() else "",
                 "review_status": gt.get("review_status", "needs_review"),
-                "missing_detections": gt.get("draft_missing_detections", []),
+                "missing_detections": missing_det,
+                "missing_ocr": missing_ocr,
+                "review_priority": priority,
                 "label_source": gt.get("draft_label_source", ""),
                 "source": gt.get("source", ""),
             }
+        )
+    if sort_mode == "stem":
+        pending.sort(key=lambda r: r["stem"])
+    elif sort_mode == "needs_work":
+        pending.sort(
+            key=lambda r: (
+                priority_rank.get(str(r.get("review_priority", "low")), 9),
+                -len(r.get("missing_ocr") or []),
+                -len(r.get("missing_detections") or []),
+                r["stem"],
+            )
+        )
+    else:
+        # fast_confirm (default): low -> medium -> high
+        pending.sort(
+            key=lambda r: (
+                -priority_rank.get(str(r.get("review_priority", "low")), 9),
+                len(r.get("missing_ocr") or []),
+                len(r.get("missing_detections") or []),
+                r["stem"],
+            )
         )
     return pending
 

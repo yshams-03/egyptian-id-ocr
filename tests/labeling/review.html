@@ -30,6 +30,13 @@
 <body>
   <div id="left">
     <div id="queue">Loading…</div>
+    <label style="font-size:12px;color:#aaa;margin-bottom:8px;">Queue order
+      <select id="sortMode" style="width:auto;margin-left:6px;">
+        <option value="fast_confirm" selected>Fast-confirm first (low priority)</option>
+        <option value="needs_work">Needs-work first (missing boxes/OCR)</option>
+        <option value="stem">Alphabetical</option>
+      </select>
+    </label>
     <canvas id="cv"></canvas>
     <p class="warn">Drag on image to draw a box. Select class, then draw. Click box in list to select. Del removes selected.</p>
   </div>
@@ -214,7 +221,12 @@
       }
       stem = queue[idx].stem;
       document.getElementById('stem').textContent = stem;
-      document.getElementById('queue').textContent = `Review ${idx+1} / ${queue.length}: ${stem}`;
+      const pri = queue[idx].review_priority || 'low';
+      const missOcr = (queue[idx].missing_ocr || []).join(', ');
+      const priTag = pri === 'high' ? ' ⚠ review first' : (pri === 'medium' ? ' · check OCR' : '');
+      document.getElementById('queue').textContent =
+        `Review ${idx+1} / ${queue.length}: ${stem} [${pri}]${priTag}` +
+        (missOcr ? ` — missing: ${missOcr}` : '');
       const draft = await api(`/api/draft/${stem}`);
       gt = draft.ground_truth;
       boxes = draft.boxes;
@@ -291,6 +303,19 @@
     document.getElementById('national_id').addEventListener('input', scheduleNidDecode);
     document.getElementById('national_id').addEventListener('blur', decodeNationalId);
 
+    async function reloadQueue() {
+      const sort = document.getElementById('sortMode').value;
+      queue = await api(`/api/pending?sort=${sort}`);
+      idx = 0;
+      if (!queue.length) {
+        document.getElementById('queue').textContent = 'No pending drafts. Run: py -m tests.labeling.prefill';
+        return;
+      }
+      loadItem();
+    }
+
+    document.getElementById('sortMode').addEventListener('change', () => reloadQueue());
+
     (async () => {
       classes = await api('/api/classes');
       const sel = document.getElementById('classSel');
@@ -299,9 +324,7 @@
         o.value = c.id; o.textContent = c.name;
         sel.appendChild(o);
       });
-      queue = await api('/api/pending');
-      if (!queue.length) document.getElementById('queue').textContent = 'No pending drafts. Run: py -m tests.labeling.prefill';
-      else loadItem();
+      await reloadQueue();
     })();
   </script>
 </body>

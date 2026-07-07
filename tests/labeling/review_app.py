@@ -80,8 +80,8 @@ def api_classes():
 
 
 @app.get("/api/pending")
-def api_pending():
-    return list_pending_drafts(DATA_DIR)
+def api_pending(sort: str = "fast_confirm"):
+    return list_pending_drafts(DATA_DIR, sort_mode=sort)
 
 
 @app.get("/api/draft/{stem}")
