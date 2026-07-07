@@ -41,6 +41,18 @@ Current held-out failures (genuine OCR ceiling, not structural bugs):
 
 ---
 
+## Known limitations
+
+| Area | Status | Notes |
+|------|--------|-------|
+| **Blur / security-pattern cards** | OCR ceiling | Held-out failures on `real_20`, `real_Front`, `real_IMG20220809112613` are image-quality limits (blur, hologram interference), not fixable via engine/config tuning alone. |
+| **Field-detection training growth** | ~180 Roboflow fronts | ~341 front candidates; ~161 have all required YOLO field boxes. The rest still need manual box drawing before import/prefill. |
+| **Serial OCR** | Full-match ~27% (held-out) | Pass scoring uses **suffix-match** when the 7-digit tail is correct but the 2-letter prefix is wrong (`tests/id_metrics.py`). Suffix-match on held-out is ~100%; do not read headline pass rate as full serial accuracy. |
+| **Name engine select** | Default-on | EasyOCR vs Tesseract(ara) on `firstName`/`lastName` only. Address stays EasyOCR-only. |
+| **Eval corpus** | 68 GT-backed / 13 held-out | Spot-check counts before A/B comparisons (no duplicate stems, stable totals across consecutive runs). |
+
+---
+
 ## Problem
 
 Egyptian national ID cards mix Arabic script, Arabic-Indic digits, Latin serial prefixes, and a fixed 14-digit national ID encoding. Manual transcription is slow and error-prone. This project automates:
@@ -337,3 +349,5 @@ Training images come from Roboflow Universe datasets (typically **CC BY 4.0**). 
 Ground truth lives in gitignored `test_data/id_cards/`; committed regression uses `tests/fixtures/ground_truth/15-2-....json` on the public Roboflow test image. Reports under `runs/test/` may contain PII — do not commit them.
 
 Before trusting any A/B comparison, spot-check corpus stability: held-out count should stay fixed (currently **13**), total GT-backed samples should match across consecutive runs (no duplicate stems), and blended case counts should not drift between runs on the same frozen corpus.
+
+**CI:** GitHub Actions runs fast unit tests on every push (`test_id_metrics`, `test_synthetic_safeguards`, `test_address_clean`). Slow OCR/YOLO tests (`pytest -m slow`) are manual/workflow-dispatch only — they need local GPU weights and will not pass on default cloud runners without adjustment.

@@ -1,9 +1,17 @@
 """CLI wrapper for tests.labeling.inventory."""
-from tests.labeling.inventory import build_inventory, print_inventory_report
-from tests.labeling.import_roboflow import DEFAULT_OUT
+from __future__ import annotations
+
+import sys
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "test_data" / "id_cards"
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tests.labeling.inventory import build_inventory, print_inventory_report
+from tests.labeling.import_roboflow import DEFAULT_OUT
+
+DATA_DIR = ROOT / "test_data" / "id_cards"
 
 
 def main() -> int:
