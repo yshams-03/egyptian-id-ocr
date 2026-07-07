@@ -1,0 +1,37 @@
+# Local ID card test images and ground truth (PII — never commit)
+test_data/id_cards/*.jpg
+test_data/id_cards/*.jpeg
+test_data/id_cards/*.png
+test_data/id_cards/*.webp
+test_data/id_cards/*.json
+test_data/id_cards/drafts/
+test_data/id_cards/draft_labels/
+test_data/id_cards/import_meta/
+test_data/id_cards/real/
+test_data/id_cards/images/
+
+# Test reports may contain PII — never commit
+runs/test/
+runs/test_reports/
+
+# Local training runs, exports, diagnosis artifacts (may contain PII)
+runs/
+
+# Large model binaries — train or download locally
+*.pt
+*.whl
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python / env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# IDE
+.idea/
+.vscode/

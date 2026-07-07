@@ -1,0 +1,28 @@
+{
+  "first_name": "خالد",
+  "last_name": "عبدالواحد عبدالرحمن المسدى",
+  "full_name": "خالد عبدالواحد عبدالرحمن المسدى",
+  "address": "كفر عنان-زفتى\nمركز زفتى - الغربية",
+  "national_id": "28904101603239",
+  "dob": "1989-04-10",
+  "serial": "FG6874835",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1989-04-10",
+  "decoded_governorate": "Gharbia",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "0323",
+  "decoded_check_digit": "9",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_48.jpg. YOLO boxes from model detection (review required)."
+}

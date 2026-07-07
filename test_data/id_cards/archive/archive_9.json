@@ -1,0 +1,28 @@
+{
+  "first_name": "محمد",
+  "last_name": "عبدالمنعم محمد السيد",
+  "full_name": "محمد عبدالمنعم محمد السيد",
+  "address": "عزبة المهاجرين\nالمنتزه - الاسكندرية",
+  "national_id": "27010200202071",
+  "dob": "1970-10-20",
+  "serial": "BR6325226",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1970-10-20",
+  "decoded_governorate": "Alexandria",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "0207",
+  "decoded_check_digit": "1",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_9.jpg. YOLO boxes from model detection (review required)."
+}

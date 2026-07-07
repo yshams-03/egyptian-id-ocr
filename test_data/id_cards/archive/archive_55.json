@@ -1,0 +1,28 @@
+{
+  "first_name": "محمود",
+  "last_name": "عصام عبدالعزيز قطب محمد",
+  "full_name": "محمود عصام عبدالعزيز قطب محمد",
+  "address": "٩ ش عبدالقادر - الحكماء\nالزقازيق ثان - الشرقية",
+  "national_id": "28909091300595",
+  "dob": "1989-09-09",
+  "serial": "GS6787688",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1989-09-09",
+  "decoded_governorate": "Ash Sharqia",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "0059",
+  "decoded_check_digit": "5",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_55.jpg. YOLO boxes from model detection (review required)."
+}

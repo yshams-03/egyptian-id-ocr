@@ -1,0 +1,42 @@
+names:
+- address
+- demo
+- dob
+- expiry
+- firstName
+- front_logo
+- invalid_address
+- invalid_barcode
+- invalid_demo
+- invalid_dob
+- invalid_expiry
+- invalid_firstName
+- invalid_issue
+- invalid_job
+- invalid_lastName
+- invalid_logo
+- invalid_nid
+- invalid_nid_back
+- invalid_photo
+- invalid_poe
+- invalid_serial
+- invalid_watermark_tut
+- issue
+- job
+- lastName
+- nid
+- nid_back
+- photo
+- poe
+- serial
+- watermark_tut
+nc: 31
+roboflow:
+  license: CC BY 4.0
+  project: egyptian-id-detectr
+  url: https://universe.roboflow.com/omartamer0/egyptian-id-detectr/dataset/3
+  version: 3
+  workspace: omartamer0
+test: ../test/images
+train: ../train/images
+val: ../valid/images

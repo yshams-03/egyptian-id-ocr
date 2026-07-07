@@ -1,0 +1,28 @@
+{
+  "first_name": "بسيونى",
+  "last_name": "محمد احمد الدنفى",
+  "full_name": "بسيونى محمد احمد الدنفى",
+  "address": "١٦ ش الليثى من ش المعهد الدينى\nدمنهور - البحيرة",
+  "national_id": "29208011817776",
+  "dob": "1992-08-01",
+  "serial": "HI0753896",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1992-08-01",
+  "decoded_governorate": "El Beheira",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "1777",
+  "decoded_check_digit": "6",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_15.jpg. YOLO boxes from model detection (review required)."
+}

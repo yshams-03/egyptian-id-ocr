@@ -1,0 +1,28 @@
+{
+  "first_name": "احمد",
+  "last_name": "حسين عواض حسن شاهين",
+  "full_name": "احمد حسين عواض حسن شاهين",
+  "address": "نهاية وابور الفولى من بن واصل\nثان الرمل - الاسكندرية",
+  "national_id": "29204180200995",
+  "dob": "1992-04-18",
+  "serial": "GI5596410",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1992-04-18",
+  "decoded_governorate": "Alexandria",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "0099",
+  "decoded_check_digit": "5",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_52.jpg. YOLO boxes from model detection (review required)."
+}

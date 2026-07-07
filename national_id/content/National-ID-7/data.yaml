@@ -1,0 +1,19 @@
+names:
+- back-bottom
+- back-left
+- back-right
+- back-up
+- front-bottom
+- front-left
+- front-right
+- front-up
+nc: 8
+roboflow:
+  license: CC BY 4.0
+  project: national-id-ltfb6
+  url: https://universe.roboflow.com/iddetection-zr0sa/national-id-ltfb6/dataset/7
+  version: 7
+  workspace: iddetection-zr0sa
+test: ../test/images
+train: ../train/images
+val: ../valid/images

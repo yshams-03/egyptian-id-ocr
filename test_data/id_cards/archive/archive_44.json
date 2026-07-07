@@ -1,0 +1,28 @@
+{
+  "first_name": "مصطفى",
+  "last_name": "ابراهيم محمد ابراهيم فتح الله",
+  "full_name": "مصطفى ابراهيم محمد ابراهيم فتح الله",
+  "address": "القلج البلد\nمركز الخانكه - القليوبية",
+  "national_id": "29807038800078",
+  "dob": "1998-07-03",
+  "serial": "JA5778064",
+  "job": "",
+  "religion": "",
+  "gender": "",
+  "marital_status": "",
+  "expiry_date": "",
+  "issue_date": "",
+  "back_nid": "",
+  "decoded_birth_date": "1998-07-03",
+  "decoded_governorate": "Foreign",
+  "decoded_gender": "Male",
+  "decoded_century": "1900-1999",
+  "decoded_sequence": "0007",
+  "decoded_check_digit": "8",
+  "back_image": "",
+  "source": "manual",
+  "tags": [
+    "reviewed"
+  ],
+  "notes": "Reviewed pre-fill from pipeline for archive_44.jpg. YOLO boxes from model detection (review required)."
+}

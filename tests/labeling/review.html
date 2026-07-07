@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ID front label review</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #1a1a1e; color: #eee; }
+    #left { flex: 1; padding: 12px; overflow: auto; display: flex; flex-direction: column; align-items: center; }
+    #right { width: 380px; padding: 12px; border-left: 1px solid #333; overflow: auto; }
+    canvas { max-width: 100%; border: 1px solid #444; cursor: crosshair; background: #000; }
+    label { display: block; font-size: 12px; color: #aaa; margin-top: 8px; }
+    input, textarea, select { width: 100%; padding: 6px; margin-top: 2px; background: #2a2a30; color: #eee; border: 1px solid #444; border-radius: 4px; }
+    textarea { min-height: 60px; }
+    button { margin-top: 8px; padding: 8px 12px; cursor: pointer; border: none; border-radius: 4px; }
+    .primary { background: #2d6a4f; color: #fff; }
+    .danger { background: #9b2226; color: #fff; }
+    .muted { background: #444; color: #fff; }
+    #queue { font-size: 13px; margin-bottom: 8px; }
+    .warn { color: #f4a261; font-size: 12px; }
+    .box-list { font-size: 12px; max-height: 120px; overflow: auto; }
+    .box-item { padding: 4px; cursor: pointer; border-radius: 3px; }
+    .box-item:hover, .box-item.sel { background: #333; }
+    .decoded { font-size: 12px; color: #bbb; margin-top: 4px; padding: 8px; background: #222; border-radius: 4px; }
+    .decoded.ok { border-left: 3px solid #2d6a4f; }
+    .decoded.bad { border-left: 3px solid #e76f51; }
+    .decoded-row { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div id="left">
+    <div id="queue">Loading…</div>
+    <canvas id="cv"></canvas>
+    <p class="warn">Drag on image to draw a box. Select class, then draw. Click box in list to select. Del removes selected.</p>
+  </div>
+  <div id="right">
+    <h3 id="stem">—</h3>
+    <div id="missing" class="warn"></div>
+    <label>Class for new box</label>
+    <select id="classSel"></select>
+    <div class="box-list" id="boxList"></div>
+    <label>First name</label><input id="first_name" />
+    <label>Last name</label><input id="last_name" />
+    <label>Full name</label><input id="full_name" />
+    <label>Address</label><textarea id="address"></textarea>
+    <label>National ID</label><input id="national_id" dir="ltr" />
+    <div id="nidDecode" class="decoded" hidden></div>
+    <label>DOB</label><input id="dob" dir="ltr" />
+    <label>Serial</label><input id="serial" dir="ltr" />
+    <input type="hidden" id="decoded_birth_date" />
+    <input type="hidden" id="decoded_governorate" />
+    <input type="hidden" id="decoded_gender" />
+    <input type="hidden" id="decoded_century" />
+    <input type="hidden" id="decoded_sequence" />
+    <input type="hidden" id="decoded_check_digit" />
+    <label><input type="checkbox" id="promote" checked /> Copy to train/valid dataset on save</label>
+    <button class="primary" id="saveBtn">Save &amp; next (S)</button>
+    <button class="muted" id="skipBtn">Skip</button>
+    <button class="danger" id="delBoxBtn">Delete selected box</button>
+  </div>
+  <script>
+    const cv = document.getElementById('cv');
+    const ctx = cv.getContext('2d');
+    let queue = [], idx = 0, stem = '', img = new Image(), boxes = [], gt = {};
+    let classes = [], drag = null, sel = -1, scale = 1;
+    let nidDecodeTimer = null;
+
+    const DECODED_KEYS = [
+      'decoded_birth_date', 'decoded_governorate', 'decoded_gender',
+      'decoded_century', 'decoded_sequence', 'decoded_check_digit'
+    ];
+
+    const COLORS = ['#e63946','#2a9d8f','#e9c46a','#457b9d','#f4a261','#a8dadc','#9b5de5','#06d6a0'];
+
+    async function api(path, opts) {
+      const r = await fetch(path, opts);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    function yoloToPx(b) {
+      const w = cv.width, h = cv.height;
+      const bw = b.w * w, bh = b.h * h;
+      const cx = b.cx * w, cy = b.cy * h;
+      return { x: cx - bw/2, y: cy - bh/2, w: bw, h: bh };
+    }
+
+    function pxToYolo(x, y, w, h) {
+      const W = cv.width, H = cv.height;
+      const cx = (x + w/2) / W, cy = (y + h/2) / H;
+      return { cx, cy, w: w/W, h: h/H };
+    }
+
+    function draw() {
+      if (!img.complete) return;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      boxes.forEach((b, i) => {
+        const p = yoloToPx(b);
+        const c = COLORS[b.class_id % COLORS.length];
+        ctx.strokeStyle = i === sel ? '#fff' : c;
+        ctx.lineWidth = i === sel ? 3 : 2;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+        ctx.fillStyle = c;
+        ctx.font = '14px sans-serif';
+        ctx.fillText(b.class_name, p.x + 2, p.y + 14);
+      });
+      if (drag) {
+        ctx.strokeStyle = '#fff';
+        ctx.setLineDash([4,4]);
+        const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1);
+        const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+      }
+    }
+
+    function fillForm() {
+      ['first_name','last_name','full_name','address','national_id','dob','serial'].forEach(k => {
+        const el = document.getElementById(k);
+        if (el) el.value = gt[k] || '';
+      });
+      DECODED_KEYS.forEach(k => {
+        const el = document.getElementById(k);
+        if (el) el.value = gt[k] || '';
+      });
+      document.getElementById('missing').textContent = (gt.draft_missing_detections || []).length
+        ? 'Missing detections: ' + gt.draft_missing_detections.join(', ')
+        : '';
+      renderNidDecodePanel(gt);
+      renderBoxList();
+    }
+
+    function renderNidDecodePanel(data) {
+      const panel = document.getElementById('nidDecode');
+      if (!data || !data.decoded_birth_date) {
+        panel.hidden = true;
+        panel.textContent = '';
+        panel.className = 'decoded';
+        return;
+      }
+      const checksumOk = data.checksum_valid === true || data.checksum_valid === 'true';
+      panel.hidden = false;
+      panel.className = 'decoded ' + (checksumOk ? 'ok' : 'bad');
+      panel.innerHTML = [
+        `<div class="decoded-row"><strong>From NID:</strong> ${data.decoded_birth_date} · ${data.decoded_governorate} · ${data.decoded_gender}</div>`,
+        `<div class="decoded-row">Century: ${data.decoded_century || '—'} · Sequence: ${data.decoded_sequence || '—'} · Check: ${data.decoded_check_digit || '—'}</div>`,
+        checksumOk
+          ? '<div class="decoded-row">Checksum OK</div>'
+          : `<div class="warn">Checksum mismatch — verify the last digit (expected ${data.expected_check_digit || '?'})</div>`
+      ].join('');
+    }
+
+    async function decodeNationalId() {
+      const raw = document.getElementById('national_id').value.trim();
+      if (!raw) {
+        DECODED_KEYS.forEach(k => {
+          const el = document.getElementById(k);
+          if (el) el.value = '';
+        });
+        renderNidDecodePanel(null);
+        return;
+      }
+      try {
+        const res = await api('/api/decode-nid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ national_id: raw }),
+        });
+        const fields = res.fields || {};
+        if (fields.national_id) {
+          document.getElementById('national_id').value = fields.national_id;
+        }
+        DECODED_KEYS.forEach(k => {
+          const el = document.getElementById(k);
+          if (el) el.value = fields[k] || '';
+        });
+        if (fields.decoded_birth_date) {
+          document.getElementById('dob').value = fields.decoded_birth_date;
+        }
+        Object.assign(gt, fields);
+        gt.checksum_valid = res.checksum_valid;
+        gt.expected_check_digit = fields.expected_check_digit || '';
+        renderNidDecodePanel({
+          ...fields,
+          checksum_valid: res.checksum_valid,
+          expected_check_digit: fields.expected_check_digit,
+        });
+      } catch (err) {
+        renderNidDecodePanel(null);
+        document.getElementById('nidDecode').hidden = false;
+        document.getElementById('nidDecode').className = 'decoded bad';
+        document.getElementById('nidDecode').textContent = 'Could not decode national ID';
+      }
+    }
+
+    function scheduleNidDecode() {
+      clearTimeout(nidDecodeTimer);
+      nidDecodeTimer = setTimeout(decodeNationalId, 250);
+    }
+
+    function renderBoxList() {
+      const bl = document.getElementById('boxList');
+      bl.innerHTML = boxes.map((b,i) =>
+        `<div class="box-item ${i===sel?'sel':''}" data-i="${i}">${b.class_name} (${(b.conf||1).toFixed?.(2) ?? '1'})</div>`
+      ).join('');
+      bl.querySelectorAll('.box-item').forEach(el => el.onclick = () => { sel = +el.dataset.i; draw(); renderBoxList(); });
+    }
+
+    async function loadItem() {
+      if (idx >= queue.length) {
+        document.getElementById('queue').textContent = 'All drafts reviewed.';
+        return;
+      }
+      stem = queue[idx].stem;
+      document.getElementById('stem').textContent = stem;
+      document.getElementById('queue').textContent = `Review ${idx+1} / ${queue.length}: ${stem}`;
+      const draft = await api(`/api/draft/${stem}`);
+      gt = draft.ground_truth;
+      boxes = draft.boxes;
+      sel = -1;
+      img = new Image();
+      img.onload = () => {
+        const maxW = Math.min(window.innerWidth * 0.55, 900);
+        scale = maxW / img.naturalWidth;
+        cv.width = img.naturalWidth;
+        cv.height = img.naturalHeight;
+        cv.style.width = maxW + 'px';
+        cv.style.height = (img.naturalHeight * scale) + 'px';
+        draw();
+      };
+      img.src = `/api/image/${stem}?t=${Date.now()}`;
+      fillForm();
+      if (gt.national_id) decodeNationalId();
+    }
+
+    cv.addEventListener('mousedown', e => {
+      const r = cv.getBoundingClientRect();
+      const x = (e.clientX - r.left) / scale, y = (e.clientY - r.top) / scale;
+      drag = { x0: x, y0: y, x1: x, y1: y };
+    });
+    cv.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const r = cv.getBoundingClientRect();
+      drag.x1 = (e.clientX - r.left) / scale;
+      drag.y1 = (e.clientY - r.top) / scale;
+      draw();
+    });
+    cv.addEventListener('mouseup', () => {
+      if (!drag) return;
+      const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1);
+      const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
+      drag = null;
+      if (w > 8 && h > 8) {
+        const cid = +document.getElementById('classSel').value;
+        const name = classes.find(c => c.id === cid)?.name || 'address';
+        const yb = pxToYolo(x, y, w, h);
+        boxes = boxes.filter(b => b.class_name !== name);
+        boxes.push({ class_id: cid, class_name: name, ...yb, conf: 1 });
+        sel = boxes.length - 1;
+      }
+      draw(); renderBoxList();
+    });
+
+    document.getElementById('saveBtn').onclick = async () => {
+      ['first_name','last_name','full_name','address','national_id','dob','serial'].forEach(k => {
+        gt[k] = document.getElementById(k).value;
+      });
+      DECODED_KEYS.forEach(k => {
+        gt[k] = document.getElementById(k).value;
+      });
+      if (!gt.full_name) gt.full_name = (gt.first_name + ' ' + gt.last_name).trim();
+      const payload = {
+        ground_truth: gt,
+        boxes,
+        promote_to_dataset: document.getElementById('promote').checked,
+      };
+      await api(`/api/save/${stem}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      idx++;
+      await loadItem();
+    };
+    document.getElementById('skipBtn').onclick = () => { idx++; loadItem(); };
+    document.getElementById('delBoxBtn').onclick = () => {
+      if (sel >= 0) { boxes.splice(sel, 1); sel = -1; draw(); renderBoxList(); }
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 's' && !e.ctrlKey) document.getElementById('saveBtn').click();
+      if (e.key === 'Delete') document.getElementById('delBoxBtn').click();
+    });
+
+    document.getElementById('national_id').addEventListener('input', scheduleNidDecode);
+    document.getElementById('national_id').addEventListener('blur', decodeNationalId);
+
+    (async () => {
+      classes = await api('/api/classes');
+      const sel = document.getElementById('classSel');
+      classes.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        sel.appendChild(o);
+      });
+      queue = await api('/api/pending');
+      if (!queue.length) document.getElementById('queue').textContent = 'No pending drafts. Run: py -m tests.labeling.prefill';
+      else loadItem();
+    })();
+  </script>
+</body>
+</html>

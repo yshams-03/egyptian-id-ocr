@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egyptian ID OCR Intelligence Engine</title>
+    <!-- Outfit and Inter Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* CSS resets and variables */
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 34, 57, 0.55);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-color: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary: #00F2FE;
+            --primary-end: #4FACFE;
+            --secondary: #7F00FF;
+            --secondary-end: #E100FF;
+            --accent-green: #00F29D;
+            --accent-red: #FF3B70;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        /* Ambient background glow elements */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(79, 172, 254, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -100px;
+            left: -100px;
+            z-index: -1;
+            filter: blur(50px);
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(127, 0, 255, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+            bottom: -100px;
+            right: -100px;
+            z-index: -1;
+            filter: blur(50px);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-end) 50%, var(--secondary-end) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+            display: inline-block;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 242, 157, 0.1);
+            border: 1px solid rgba(0, 242, 157, 0.2);
+            color: var(--accent-green);
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            box-shadow: 0 0 15px rgba(0, 242, 157, 0.05);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* Glassmorphic card styling */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: transform var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        /* Main Workspace Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Configuration and Upload Section */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Form elements styling */
+        .config-section {
+            padding: 1.5rem;
+        }
+
+        .config-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        select, input[type="number"] {
+            background: rgba(10, 15, 26, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color var(--transition-speed);
+        }
+
+        select:focus, input[type="number"]:focus {
+            border-color: var(--primary);
+        }
+
+        /* Checkbox styling */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-group input {
+            cursor: pointer;
+        }
+
+        /* Dropzone Upload styling */
+        .upload-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .dropzone {
+            flex-grow: 1;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(10, 15, 26, 0.3);
+            transition: all var(--transition-speed);
+            min-height: 250px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dropzone.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 242, 254, 0.05);
+            transform: scale(1.01);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.15);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-end) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform var(--transition-speed);
+        }
+
+        .dropzone:hover .upload-icon {
+            transform: translateY(-5px);
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 260px;
+            object-fit: contain;
+            border-radius: 10px;
+            display: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-end) 100%);
+            border: none;
+            color: #0b0f19;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+            transition: all var(--transition-speed);
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+            filter: brightness(1.05);
+        }
+
+        .btn-action:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn-action:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Results / Processing Right Panel */
+        .right-panel {
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Loading / Stepper animation */
+        .processing-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 2rem 0;
+        }
+
+        .loader-spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.05);
+            border-top-color: var(--primary);
+            border-right-color: var(--secondary-end);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stepper {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0.4;
+            transition: opacity 0.4s;
+        }
+
+        .step.active {
+            opacity: 1;
+        }
+
+        .step.completed {
+            opacity: 0.8;
+        }
+
+        .step-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: all 0.4s;
+        }
+
+        .step.active .step-circle {
+            border-color: var(--primary);
+            background-color: rgba(0, 242, 254, 0.1);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+
+        .step.completed .step-circle {
+            border-color: var(--accent-green);
+            background-color: var(--accent-green);
+            color: #0b0f19;
+        }
+
+        .step-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.4s;
+        }
+
+        .step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .processing-hint {
+            margin-top: 1.25rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            max-width: 360px;
+            line-height: 1.45;
+        }
+
+        .processing-hint strong {
+            color: var(--primary);
+        }
+
+        /* Results Display styling */
+        .results-container {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 100%;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
+        }
+
+        /* Fields Grid */
+        .fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .field-card {
+            background: rgba(10, 15, 26, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            transition: all var(--transition-speed);
+            overflow: hidden;
+        }
+
+        .field-card:hover {
+            border-color: rgba(0, 242, 254, 0.2);
+            background: rgba(22, 34, 57, 0.4);
+        }
+
+        .field-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            max-width: 85%;
+        }
+
+        .field-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .field-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        /* RTL text for Arabic values */
+        .field-value.rtl {
+            direction: rtl;
+            text-align: right;
+            font-size: 1.2rem;
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .field-value.national-id-val {
+            letter-spacing: 2px;
+            font-family: monospace;
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .btn-copy {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all var(--transition-speed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-copy:hover {
+            color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Decoded info section */
+        .decoded-section {
+            margin-top: 1rem;
+            background: rgba(0, 242, 254, 0.03);
+            border: 1px dashed rgba(0, 242, 254, 0.15);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .decoded-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .decoded-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+
+        .decoded-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .decoded-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .decoded-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Error state styling */
+        .error-message {
+            background: rgba(255, 59, 112, 0.1);
+            border: 1px solid rgba(255, 59, 112, 0.2);
+            color: var(--accent-red);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .error-title {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Placeholder State */
+        .placeholder-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 3rem 1rem;
+            gap: 1.5rem;
+        }
+
+        .placeholder-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            background: linear-gradient(135deg, var(--text-secondary) 0%, var(--card-border) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .placeholder-text {
+            font-size: 1.1rem;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        /* Crops Gallery section at the bottom */
+        .crops-section {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .crops-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            border-top: 1px solid var(--card-border);
+            padding-top: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .crops-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.8rem;
+        }
+
+        .crop-card {
+            background: rgba(10, 15, 26, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100px;
+        }
+
+        .crop-img-container {
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .crop-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .crop-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 700;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>EGYPTIAN ID INTEL ENGINE</h1>
+            <p class="subtitle">Secure local AI pipeline for National ID card scanning & data extraction</p>
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Checking server…</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="main-grid">
+            <!-- Left Panel (Controls & Upload) -->
+            <div class="left-panel">
+                
+                <!-- Upload Box -->
+                <div class="glass-card upload-section">
+                    <div class="config-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <span>ID Card Upload</span>
+                    </div>
+                    
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                        <div class="upload-icon" id="uploadIcon">⚡</div>
+                        <div class="upload-text" id="uploadText">Drag & drop your ID photo here</div>
+                        <div class="upload-hint" id="uploadHint">Supports PNG, JPG, JPEG, and WebP formats</div>
+                        <img src="" alt="Uploaded ID preview" class="preview-img" id="previewImg">
+                    </div>
+                    
+                    <button class="btn-action" id="btnProcess" disabled>
+                        <span>PROCESS ID CARD</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
+
+                <!-- Parameters Controls -->
+                <div class="glass-card config-section">
+                    <div class="config-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Model Parameters</span>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="confThreshold">Confidence Threshold</label>
+                            <input type="number" id="confThreshold" min="0.1" max="0.9" step="0.05" value="0.25">
+                        </div>
+                        <div class="form-group">
+                            <label for="ocrEngine">OCR Engine</label>
+                            <select id="ocrEngine">
+                                <option value="mixed" selected>Mixed (Tess + Easy)</option>
+                                <option value="tesseract">Tesseract Only</option>
+                                <option value="easyocr">EasyOCR Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="langMode">Language Mode</label>
+                            <select id="langMode">
+                                <option value="both" selected>Auto (ara + eng)</option>
+                                <option value="ara">Arabic Only</option>
+                                <option value="ara+eng">Combo (ara+eng)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="justify-content: center;">
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="autoCardCrop">
+                                <span>Auto-Crop ID Card</span>
+                            </label>
+                        </div>
+                        <div class="form-group" style="justify-content: center;">
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="decodeNid" checked>
+                                <span>Decode NID (DOB / governorate / gender)</span>
+                            </label>
+                        </div>
+                        <div class="form-group" style="justify-content: center;">
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="fastMode" checked>
+                                <span>Fast mode (recommended — skips slow Tesseract passes)</span>
+                            </label>
+                        </div>
+                        <div class="form-group" style="justify-content: center;">
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="autoDetectSide">
+                                <span>Auto-detect front vs back (single image)</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="backFileInput">Back card image (optional)</label>
+                            <input type="file" id="backFileInput" accept="image/*" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--card-border);background:rgba(0,0,0,0.2);color:var(--text-color);">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel (Display Output) -->
+            <div class="glass-card right-panel" id="rightPanel">
+                
+                <!-- Placeholder State -->
+                <div class="placeholder-state" id="placeholderState">
+                    <div class="placeholder-icon">🔍</div>
+                    <div class="placeholder-text">Upload an ID card photo and click process to view extracted intelligence details.</div>
+                </div>
+
+                <!-- Processing Stepper Screen -->
+                <div class="processing-container" id="processingContainer">
+                    <div class="loader-spinner"></div>
+                    <div class="stepper">
+                        <div class="step" id="step1">
+                            <div class="step-circle">1</div>
+                            <div class="step-label">Uploading Image...</div>
+                        </div>
+                        <div class="step" id="step2">
+                            <div class="step-circle">2</div>
+                            <div class="step-label">YOLO Field Detection...</div>
+                        </div>
+                        <div class="step" id="step3">
+                            <div class="step-circle">3</div>
+                            <div class="step-label">Arabic Names & Address OCR...</div>
+                        </div>
+                        <div class="step" id="step4">
+                            <div class="step-circle">4</div>
+                            <div class="step-label">Reading NID &amp; serial…</div>
+                        </div>
+                    </div>
+                    <p class="processing-hint" id="processingHint">
+                        Running pipeline… <strong id="processingSeconds">0</strong>s
+                        <span id="processingEta">(target: under 30s with Fast mode)</span>
+                    </p>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="results-container" id="resultsContainer">
+                    <div class="results-header">
+                        <div class="results-title">Extracted Details</div>
+                        <button class="btn-reset" id="btnReset">Clear</button>
+                    </div>
+
+                    <div class="fields-list">
+                        <!-- Full Name -->
+                        <div class="field-card">
+                            <div class="field-info">
+                                <div class="field-label">Full Name / الاسم بالكامل</div>
+                                <div class="field-value rtl" id="valFullName">-</div>
+                            </div>
+                            <button class="btn-copy" onclick="copyText('valFullName')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="field-card">
+                            <div class="field-info">
+                                <div class="field-label">Address / العنوان</div>
+                                <div class="field-value rtl" id="valAddress">-</div>
+                            </div>
+                            <button class="btn-copy" onclick="copyText('valAddress')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- National ID -->
+                        <div class="field-card">
+                            <div class="field-info">
+                                <div class="field-label">National ID / الرقم القومي</div>
+                                <div class="field-value national-id-val" id="valNationalId">-</div>
+                            </div>
+                            <button class="btn-copy" onclick="copyText('valNationalId')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div class="field-card">
+                            <div class="field-info">
+                                <div class="field-label">Date of Birth / تاريخ الميلاد</div>
+                                <div class="field-value" id="valDob">-</div>
+                            </div>
+                            <button class="btn-copy" onclick="copyText('valDob')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Serial -->
+                        <div class="field-card">
+                            <div class="field-info">
+                                <div class="field-label">Serial / الرقم التسلسلي</div>
+                                <div class="field-value" id="valSerial">-</div>
+                            </div>
+                            <button class="btn-copy" onclick="copyText('valSerial')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Back card fields -->
+                    <div class="decoded-section" id="backSection" style="display: none; margin-top: 1rem;">
+                        <div class="decoded-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+                            <span>Back of card</span>
+                        </div>
+                        <div class="decoded-grid">
+                            <div class="decoded-item"><span class="decoded-label">Job</span><span class="decoded-value rtl" id="valJob">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Religion</span><span class="decoded-value rtl" id="valReligion">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Gender</span><span class="decoded-value rtl" id="valGenderBack">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Marital</span><span class="decoded-value rtl" id="valMarital">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Expiry</span><span class="decoded-value" id="valExpiry">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Issue</span><span class="decoded-value" id="valIssue">-</span></div>
+                            <div class="decoded-item"><span class="decoded-label">Back NID</span><span class="decoded-value" id="valBackNid">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="field-card" id="photoPathCard" style="display:none; margin-top:0.5rem;">
+                        <div class="field-info">
+                            <div class="field-label">Photo saved</div>
+                            <div class="field-value" id="valPhotoPath" style="font-size:0.85rem;">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Decoded NID Details -->
+                    <div class="decoded-section" id="decodedSection" style="display: none;">
+                        <div class="decoded-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Decoded National ID Verification</span>
+                        </div>
+                        <div class="decoded-grid">
+                            <div class="decoded-item">
+                                <span class="decoded-label">Birth Date</span>
+                                <span class="decoded-value" id="valDecBirthDate">-</span>
+                            </div>
+                            <div class="decoded-item">
+                                <span class="decoded-label">Gender</span>
+                                <span class="decoded-value" id="valDecGender">-</span>
+                            </div>
+                            <div class="decoded-item">
+                                <span class="decoded-label">Governorate</span>
+                                <span class="decoded-value" id="valDecGovernorate">-</span>
+                            </div>
+                            <div class="decoded-item">
+                                <span class="decoded-label">Century</span>
+                                <span class="decoded-value" id="valDecCentury">-</span>
+                            </div>
+                            <div class="decoded-item">
+                                <span class="decoded-label">Sequence</span>
+                                <span class="decoded-value" id="valDecSequence">-</span>
+                            </div>
+                            <div class="decoded-item">
+                                <span class="decoded-label">Check digit</span>
+                                <span class="decoded-value" id="valDecCheck">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="error-message" id="warningsSection" style="display: none; margin-top: 0.75rem; border-color: rgba(255, 200, 0, 0.35); background: rgba(255, 200, 0, 0.08);">
+                        <span class="error-title" style="color: #fbbf24;">Notice</span>
+                        <span id="valWarnings">-</span>
+                    </div>
+
+                    <!-- Error decoding NID -->
+                    <div class="error-message" id="decodeErrorSection" style="display: none;">
+                        <span class="error-title">Decryption Status Alert</span>
+                        <span id="valDecodeError">-</span>
+                    </div>
+
+                    <!-- Crops Gallery -->
+                    <div class="crops-section" id="cropsSection" style="display: none;">
+                        <div class="crops-title">Detected Field Crops</div>
+                        <div class="crops-gallery" id="cropsGallery">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const previewImg = document.getElementById('previewImg');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const uploadText = document.getElementById('uploadText');
+        const uploadHint = document.getElementById('uploadHint');
+        
+        const btnProcess = document.getElementById('btnProcess');
+        const btnReset = document.getElementById('btnReset');
+        
+        const placeholderState = document.getElementById('placeholderState');
+        const processingContainer = document.getElementById('processingContainer');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
+        const processingHint = document.getElementById('processingHint');
+        const processingSeconds = document.getElementById('processingSeconds');
+        const backFileInput = document.getElementById('backFileInput');
+
+        let selectedFile = null;
+        let processTimerId = null;
+
+        let serverReady = false;
+
+        async function pollHealth() {
+            const badge = document.getElementById('statusBadge');
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            try {
+                const r = await fetch('/health');
+                const h = await r.json();
+                if (h.ok && h.field_weights && h.models_ready) {
+                    serverReady = true;
+                    text.textContent = 'SERVER READY · models cached';
+                    badge.style.borderColor = 'rgba(0, 242, 157, 0.2)';
+                    badge.style.color = 'var(--accent-green)';
+                    dot.style.background = 'var(--accent-green)';
+                    if (selectedFile) btnProcess.disabled = false;
+                    return;
+                }
+                if (h.ok && !h.models_ready) {
+                    serverReady = false;
+                    text.textContent = 'LOADING MODELS… wait for terminal “Server ready”';
+                    dot.style.background = '#fbbf24';
+                    badge.style.color = '#fbbf24';
+                    btnProcess.disabled = true;
+                } else {
+                    serverReady = false;
+                    text.textContent = 'SERVER UP · WEIGHTS MISSING';
+                    dot.style.background = '#fbbf24';
+                    badge.style.color = '#fbbf24';
+                }
+            } catch (_) {
+                serverReady = false;
+                text.textContent = 'OFFLINE — run: py gui_app.py';
+                dot.style.background = 'var(--accent-red)';
+                badge.style.borderColor = 'rgba(255, 59, 112, 0.3)';
+                badge.style.color = 'var(--accent-red)';
+                dot.style.animation = 'none';
+                btnProcess.disabled = true;
+            }
+            setTimeout(pollHealth, 2000);
+        }
+        pollHealth();
+
+        // Click to upload
+        dropzone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Drag and drop event handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file.');
+                return;
+            }
+            selectedFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewImg.style.display = 'block';
+                
+                // Hide texts
+                uploadIcon.style.display = 'none';
+                uploadText.style.display = 'none';
+                uploadHint.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            
+            btnProcess.disabled = !serverReady;
+        }
+
+        function startProcessTimer() {
+            let sec = 0;
+            processingSeconds.textContent = '0';
+            resetSteps();
+            updateStep(step1, 'active');
+            processTimerId = setInterval(() => {
+                sec += 1;
+                processingSeconds.textContent = String(sec);
+                if (sec < 3) {
+                    updateStep(step1, 'active');
+                } else if (sec < 15) {
+                    updateStep(step1, 'completed');
+                    updateStep(step2, 'active');
+                } else if (sec < 45) {
+                    updateStep(step2, 'completed');
+                    updateStep(step3, 'active');
+                } else {
+                    updateStep(step3, 'completed');
+                    updateStep(step4, 'active');
+                }
+            }, 1000);
+        }
+
+        function stopProcessTimer() {
+            if (processTimerId) {
+                clearInterval(processTimerId);
+                processTimerId = null;
+            }
+        }
+
+        btnProcess.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            if (!serverReady) {
+                alert('Models are still loading. Check the terminal for “Server ready”, then try again.');
+                return;
+            }
+
+            btnProcess.disabled = true;
+            placeholderState.style.display = 'none';
+            resultsContainer.style.display = 'none';
+            processingContainer.style.display = 'flex';
+            startProcessTimer();
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('conf', document.getElementById('confThreshold').value);
+            formData.append('engine', document.getElementById('ocrEngine').value);
+            formData.append('lang_mode', document.getElementById('langMode').value);
+            formData.append('auto_card_crop', document.getElementById('autoCardCrop').checked ? 'true' : 'false');
+            formData.append('decode_nid', document.getElementById('decodeNid').checked ? 'true' : 'false');
+            formData.append('auto_detect_side', document.getElementById('autoDetectSide').checked ? 'true' : 'false');
+            if (backFileInput.files.length > 0) {
+                formData.append('back_file', backFileInput.files[0]);
+            }
+            formData.append('fast_mode', document.getElementById('fastMode').checked ? 'true' : 'false');
+            const fastOn = document.getElementById('fastMode').checked;
+            document.getElementById('processingEta').textContent = fastOn
+                ? '(target: under 30s — keep Fast mode on)'
+                : '(accurate mode: often 2–5 min; not under 30s)';
+
+            try {
+                const response = await fetch('/process', { method: 'POST', body: formData });
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (_) {
+                    throw new Error('Server returned invalid JSON (response too large or crashed).');
+                }
+
+                stopProcessTimer();
+                [step1, step2, step3, step4].forEach(s => updateStep(s, 'completed'));
+                processingContainer.style.display = 'none';
+
+                if (response.status === 503) {
+                    displayError(result.error || 'Models still loading. Wait and retry.');
+                    return;
+                }
+                if (!response.ok || !result.success) {
+                    displayError(result.error || `Server error (${response.status})`);
+                    return;
+                }
+                displayResults(result.data, result.crops || {}, result.warnings || []);
+                if (selectedFile && serverReady) btnProcess.disabled = false;
+            } catch (err) {
+                console.error(err);
+                stopProcessTimer();
+                processingContainer.style.display = 'none';
+                displayError(err.message || 'Request failed. Check the terminal running gui_app.py.');
+                if (selectedFile && serverReady) btnProcess.disabled = false;
+            }
+        });
+
+        // Reset state
+        btnReset.addEventListener('click', clearAll);
+
+        function clearAll() {
+            stopProcessTimer();
+            selectedFile = null;
+            fileInput.value = '';
+            
+            // Reset upload box
+            previewImg.style.display = 'none';
+            previewImg.src = '';
+            uploadIcon.style.display = 'block';
+            uploadText.style.display = 'block';
+            uploadHint.style.display = 'block';
+            
+            btnProcess.disabled = true;
+            
+            // Reset right panel
+            resultsContainer.style.display = 'none';
+            processingContainer.style.display = 'none';
+            placeholderState.style.display = 'flex';
+            
+            resetSteps();
+        }
+
+        function resetSteps() {
+            [step1, step2, step3, step4].forEach(step => {
+                step.className = 'step';
+            });
+        }
+
+        function updateStep(stepElement, state) {
+            stepElement.className = `step ${state}`;
+        }
+
+        function displayResults(data, crops, warnings) {
+            try {
+            const pick = (v) => (v && String(v).trim()) ? v : 'Not Detected';
+            document.getElementById('valFullName').innerText = pick(data.full_name);
+            document.getElementById('valAddress').innerText = pick(data.address);
+            document.getElementById('valNationalId').innerText = formatNid(data.national_id) || 'Not Detected';
+            document.getElementById('valDob').innerText = pick(data.dob || data.decoded_birth_date);
+            document.getElementById('valSerial').innerText = pick(data.serial);
+
+            const backSection = document.getElementById('backSection');
+            const hasBack = !!(data.job || data.religion || data.back_nid || data.expiry_date);
+            if (hasBack) {
+                backSection.style.display = 'block';
+                document.getElementById('valJob').innerText = pick(data.job);
+                document.getElementById('valReligion').innerText = pick(data.religion);
+                document.getElementById('valGenderBack').innerText = pick(data.gender);
+                document.getElementById('valMarital').innerText = pick(data.marital_status);
+                document.getElementById('valExpiry').innerText = pick(data.expiry_date);
+                document.getElementById('valIssue').innerText = pick(data.issue_date);
+                document.getElementById('valBackNid').innerText = pick(data.back_nid);
+            } else {
+                backSection.style.display = 'none';
+            }
+
+            const photoCard = document.getElementById('photoPathCard');
+            if (data.photo_path) {
+                photoCard.style.display = 'flex';
+                document.getElementById('valPhotoPath').innerText = data.photo_path;
+            } else {
+                photoCard.style.display = 'none';
+            }
+
+            const decodedSection = document.getElementById('decodedSection');
+            const decodeErrorSection = document.getElementById('decodeErrorSection');
+            const warningsSection = document.getElementById('warningsSection');
+            
+            if (data.decoded_gender || data.decoded_governorate || data.decoded_birth_date) {
+                decodedSection.style.display = 'block';
+                document.getElementById('valDecBirthDate').innerText = data.decoded_birth_date || '-';
+                document.getElementById('valDecGender').innerText = data.decoded_gender || '-';
+                document.getElementById('valDecGovernorate').innerText = data.decoded_governorate || '-';
+                document.getElementById('valDecCentury').innerText = data.decoded_century || '-';
+                document.getElementById('valDecSequence').innerText = data.decoded_sequence || '-';
+                document.getElementById('valDecCheck').innerText = data.decoded_check_digit || '-';
+            } else {
+                decodedSection.style.display = 'none';
+            }
+
+            const hardErr = data.nid_decode_error && data.nid_decode_error !== 'no detections';
+            if (hardErr && !data.decoded_birth_date) {
+                decodeErrorSection.style.display = 'block';
+                document.getElementById('valDecodeError').innerText = data.nid_decode_error;
+            } else {
+                decodeErrorSection.style.display = 'none';
+            }
+
+            if (warnings && warnings.length) {
+                warningsSection.style.display = 'block';
+                document.getElementById('valWarnings').innerText = warnings.join(' ');
+            } else if (data.nid_decode_error === 'no detections') {
+                warningsSection.style.display = 'block';
+                document.getElementById('valWarnings').innerText = data.nid_decode_error;
+            } else {
+                warningsSection.style.display = 'none';
+            }
+
+            // Inject crops
+            const cropsSection = document.getElementById('cropsSection');
+            const cropsGallery = document.getElementById('cropsGallery');
+            cropsGallery.innerHTML = '';
+            
+            const cropLabels = {
+                'firstName': 'First Name',
+                'lastName': 'Last Name',
+                'address': 'Address',
+                'nid': 'National ID',
+                'dob': 'Date of Birth',
+                'serial': 'Serial Number',
+                'photo': 'Face Photo',
+                'nid_back': 'NID Back'
+            };
+
+            const cropKeys = Object.keys(crops);
+            if (cropKeys.length > 0) {
+                cropsSection.style.display = 'block';
+                cropKeys.forEach(key => {
+                    const card = document.createElement('div');
+                    card.className = 'crop-card';
+                    
+                    const imgCont = document.createElement('div');
+                    imgCont.className = 'crop-img-container';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'crop-img';
+                    img.src = crops[key];
+                    img.alt = key;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'crop-label';
+                    label.innerText = cropLabels[key] || key;
+                    
+                    imgCont.appendChild(img);
+                    card.appendChild(imgCont);
+                    card.appendChild(label);
+                    cropsGallery.appendChild(card);
+                });
+            } else {
+                cropsSection.style.display = 'none';
+            }
+
+            resultsContainer.style.display = 'flex';
+            } catch (err) {
+                console.error(err);
+                displayError('Could not display results: ' + err.message);
+            }
+        }
+
+        function displayError(errorText) {
+            resultsContainer.style.display = 'flex';
+            
+            // Set all fields to empty/error
+            document.getElementById('valFullName').innerText = '-';
+            document.getElementById('valAddress').innerText = '-';
+            document.getElementById('valNationalId').innerText = '-';
+            document.getElementById('valDob').innerText = '-';
+            document.getElementById('valSerial').innerText = '-';
+            document.getElementById('backSection').style.display = 'none';
+            document.getElementById('photoPathCard').style.display = 'none';
+            
+            document.getElementById('decodedSection').style.display = 'none';
+            document.getElementById('warningsSection').style.display = 'none';
+            document.getElementById('cropsSection').style.display = 'none';
+            
+            // Show error
+            const decodeErrorSection = document.getElementById('decodeErrorSection');
+            decodeErrorSection.style.display = 'block';
+            document.getElementById('valDecodeError').innerText = errorText;
+        }
+
+        function formatNid(nid) {
+            if (!nid) return '';
+            const clean = String(nid).replace(/[^\d]/g, '');
+            return clean.length === 14 ? clean : nid;
+        }
+
+        async function copyText(elementId) {
+            const val = document.getElementById(elementId).innerText;
+            if (val && val !== '-' && val !== 'Not Detected') {
+                try {
+                    await navigator.clipboard.writeText(val.replace(/\s/g, ''));
+                    
+                    // Visual feedback
+                    const btn = document.querySelector(`#${elementId}`).closest('.field-card').querySelector('.btn-copy');
+                    const origSvg = btn.innerHTML;
+                    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${window.getComputedStyle(document.documentElement).getPropertyValue('--accent-green')}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
+                    setTimeout(() => {
+                        btn.innerHTML = origSvg;
+                    }, 1500);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "full_name": "مصطفى عاطف عبدالله ابراهيم",
+  "first_name": "مصطفى",
+  "last_name": "عاطف عبدالله ابراهيم",
+  "address": "ش سعد زغلول مركز منيا القمح - الشرقية",
+  "national_id": "29611091301456",
+  "dob": "1996-11-09",
+  "source": "roboflow_test",
+  "tags": ["real_card", "good_quality", "roboflow_test"],
+  "notes": "Regression fixture — Roboflow Egyptian-ID-Detectr-3 test split"
+}
